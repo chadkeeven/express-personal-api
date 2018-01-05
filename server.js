@@ -31,18 +31,6 @@ app.use(express.static('public'));
 });
 
 /*
-*Array for Cars
-*/
-
-var cars = [
-{_id: 1, make: "Nissan", modle: "370z", year: 2015},
-{_id: 2,make: "Nissan", modle: "GTR", year: 2010},
-{_id: 3,make: "Ford", modle: "Mustang", year: 2017}
-];
-
-
-
-/*
  * JSON API Endpoints
  */
 
@@ -54,17 +42,17 @@ var cars = [
     base_url: "https://fast-shore-20500.herokuapp.com/",
     endpoints: [
     {method: "GET", path: "/api", description: "Describes all available endpoints"},
-      {method: "GET", path: "/api/chadkeeven", description: "Data about me"}, 
-      {method: "GET", path: "/api/cars", description: "Shows all cars"},
-      {method: "GET", path: "/api/cars/:id", description: "Show by car by id"},
-      {method: "POST", path: "/api/cars/", description: "Creates a new car"},
-      {method: "PUT", path: "/api/cars/:id", description: "Updates car that was selected by id"},
-      {method: "DELETE", path: "/api/cars/:id", description: "Delete car by id"}
-      ]
-    });
+    {method: "GET", path: "/api/chadkeeven", description: "Data about me"}, 
+    {method: "GET", path: "/api/cars", description: "Shows all cars"},
+    {method: "GET", path: "/api/cars/:id", description: "Show car by id"},
+    {method: "POST", path: "/api/cars/", description: "Creates a new car"},
+    {method: "PUT", path: "/api/cars/:id", description: "Updates car that was selected by id"},
+    {method: "DELETE", path: "/api/cars/:id", description: "Delete car by id"}
+    ]
+  });
 });
 //Shows hardcoded profile of me
- app.get('/api/chadkeeven', function show_profile(req, res){
+app.get('/api/chadkeeven', function show_profile(req, res){
   res.json({
     name: "Chad Keeven",
     github_link : "https://github.com/chadkeeven",
@@ -74,76 +62,67 @@ var cars = [
   });
 });
 
-//Shows all cars HARDCODED
+//Shows all cars
 app.get('/api/cars', function show_cars(req, res){
-  res.json({cars});
+  db.Cars.find(function(err, cars){
+    if(err){
+      res.send("No cars to retrieve");
+    }
+    res.json(cars);
+  });
 });
 
-//Shows cars by id HARDCODED
+//Shows cars by id
 app.get('/api/cars/:id', function show_car_id(req, res){
-  var carId = parseInt(req.params.id);
-  for (var i = 0; i < carId; i++) {
-     if(carId === cars[i]._id){
-     //  console.log(todos[i]._id);
-     res.json(cars[i]);
-   }
- }
+  var carId = req.params.id;
+  var carFound = false;
+  db.Cars.findById(carId,function(err, cars){
+    if (err) {
+      res.send("Car id not found");
+    }
+    res.json(cars);
+  });
 });
 
-//Creates new car HARDCODED
-var counter = 3;
+//Creates new car 
 app.post('/api/cars', function create_cars(req, res){
-  counter ++;
-  var newId = counter;
   var newMake = req.body.make;
   var newModel = req.body.model;
   var newYear = req.body.year;
-    var newCar ={_id: parseInt(newId) ,make: newMake,model: newModel, year: parseInt(newYear)};
-    cars.push(newCar);
-    res.json(newCar);
+  var newCar = {make: newMake,model: newModel, year: parseInt(newYear)};
+  db.Cars.create(newCar, function(err, car){
+    if(err){
+      res.json("Sorry It's a no go");
+    }
+  });
+  res.json(newCar);
 });
 
-
-// //Updates car by id HARDCODED
+// //Updates car by id 
 app.put('/api/cars/:id', function update_car(req, res){
   var carToUpdate = req.params.id;
-  var updateIdFound = false;
-  var amountInCars = 0;
-  var idParsed = parseInt(carToUpdate);
-   while(!updateIdFound){
-     if(idParsed === cars[amountInCars]._id){
-      var updatedMake = req.body.make;
-      var updatedModel = req.body.model; 
-      var updatedYear = req.body.year;
-      var updatedCar = {_id: idParsed,make: updatedMake,model: updatedModel, year: updatedYear};
-      cars[amountInCars] = updatedCar;
-      updateIdFound = true;
-     res.json(updatedCar);
+  db.Cars.findOneAndUpdate({_id: carToUpdate},
+    {$set: {"make": req.body.make,
+    "model" : req.body.model,
+    "year" : req.body.year
+  }}, { new: true }, function (err, car){
+    if (err) {
+      res.json("Can't Update");
     }
-    amountInCars ++;
-  }
+    res.json(car);
+  });
 });
 
-//Deletes car by id HARDCODED
-app.delete('/api/cars/:id', function delete_car(req, res){
-  var carToDelete = parseInt(req.params.id);
-  var idFound = false;
-  var amountInArr = 0;
-   while(!idFound){
-    if(carToDelete === cars[amountInArr]._id){
-      var spliceCar = cars.splice(amountInArr, 1);
-      idFound = true;
-      res.json(cars);
-    }
-    amountInArr ++;
-  }
+//Deletes car by id
+app.delete('/api/cars/:id', function delete_car(req, res){  
+  var carToDelete = req.params.id;
+  db.Cars.remove({_id: carToDelete},function(err, car){
+    res.json("Car deleted");
+  });
+
 });
 
-// At least one resource (mongoose model) that you can CRUD using RESTful Routes
-// That means endpoints for index, show, create update, delete!
-// Here are some ideas:
-// Wish list (e.g. gifts or wishes)
-// _id, description, price, amazon_link
+
 /**********
  * SERVER *
  **********/
